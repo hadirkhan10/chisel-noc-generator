@@ -51,20 +51,9 @@ object RoutingTable {
     var newXCord = srcXCord
     var newYCord = srcYCord
 
-    println("to node: " + toNode.id)
-    println("from node: " + fromNode.id)
-
-    println("newXCord: " + newXCord)
-    println("dstXCord: " + dstXCord)
-
-    println("newYCord: " + newYCord)
-    println("dstTCord: " + dstYCord)
-
 
     while (newXCord != dstXCord || newYCord != dstYCord) {
-      println("newXCord is: " + newXCord)
       if (newXCord < dstXCord) {
-        println("x cord is less than destination")
         newXCord += 1
         route += E
       } else if (newXCord > dstXCord) {
