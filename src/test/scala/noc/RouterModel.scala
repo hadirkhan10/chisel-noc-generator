@@ -1,8 +1,9 @@
 package noc
 import chiseltest.ChiselScalatestTester
+import noc.Route.X
 import org.scalatest.flatspec.AnyFlatSpec
 
-import scala.collection.mutable.Map
+import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -19,17 +20,24 @@ object Route extends Enumeration {
 
 class MeshNetwork(row: Int, col: Int) {
   val grid: Seq[Seq[Node]] = Seq.tabulate(row, col){case (i,j) => new Node((j,i))}
+
+  def getNode(id: (Int, Int)): Node = {
+    val nodes = grid.flatten
+    val index = nodes.indexWhere(n => n.id == id)
+    nodes(index)
+  }
 }
 
 object RoutingTable {
   import Route._
-  def apply(topology: MeshNetwork, sourceNode: Node): Map[Node, Seq[Route]] = {
+  def apply(topology: MeshNetwork, sourceNode: Node): LinkedHashMap[Node, Seq[Route]] = {
     // initialize an empty route table
-    var routeTable: Map[Node, Seq[Route]] = Map()
+    var routeTable: LinkedHashMap[Node, Seq[Route]] = LinkedHashMap()
     // get a list of all the nodes in the mesh
     val nodes: Seq[Node] = topology.grid.flatten
 
     for (i <- 0 until nodes.length) {
+
       if (sourceNode.id._1 == nodes(i).id._1 && sourceNode.id._2 == nodes(i).id._2) {
         routeTable += (sourceNode -> Seq(X))
       } else {
@@ -78,25 +86,61 @@ object RoutingTable {
 
 }
 
-//object RoutingTableTestData {
-//  def apply(row: Int, col: Int, node: Node) = {
-//    if (row==2 && col==4) {
-//      val routeTableforSrc0 = Map(node -> Seq())
-//    }
-//  }
-//
-//}
+object RoutingTableTestData {
+  import Route._
+
+  def apply(row: Int, col: Int, node: Node): LinkedHashMap[Node, Seq[Route]] = {
+    if (row==2 && col==2) {
+      if (node.id == (0,0)) {
+        LinkedHashMap[Node, Seq[Route]](
+          new Node((0,0)) -> List(X),
+          new Node((1,0)) -> List(E, X),
+          new Node((0,1)) -> List(S, X),
+          new Node((1,1)) -> List(E,S,X))
+      } else if (node.id == (1,0)) {
+        LinkedHashMap[Node, Seq[Route]](
+          new Node((0, 0)) -> List(W, X),
+          new Node((1, 0)) -> List(X),
+          new Node((0, 1)) -> List(W, S, X),
+          new Node((1, 1)) -> List(S, X))
+      } else if (node.id == (0, 1)) {
+        LinkedHashMap[Node, Seq[Route]](
+          new Node((0, 0)) -> List(N, X),
+          new Node((1, 0)) -> List(E, N, X),
+          new Node((0, 1)) -> List(X),
+          new Node((1, 1)) -> List(E, X))
+      } else if (node.id == (1, 1)) {
+        LinkedHashMap[Node, Seq[Route]](
+          new Node((0, 0)) -> List(W, N, X),
+          new Node((1, 0)) -> List(N, X),
+          new Node((0, 1)) -> List(W, X),
+          new Node((1, 1)) -> List(X))
+      }
+      else {???}
+    } else {
+      LinkedHashMap[Node, Seq[Route]]()
+    }
+  }
+
+}
 
 class RoutingTableModel extends AnyFlatSpec with ChiselScalatestTester {
   import Route._
   behavior of "RoutingTable"
-  it should "give the correct route for source node 0" in {
+  it should "give the correct route for all source nodes in a 2x2 mesh" in {
     val row = 2
-    val col = 4
+    val col = 2
     val mesh = new MeshNetwork(row,col)
+    for (i <- 0 until row) {
+      for (j <- 0 until col) {
+        val sourceNode = new Node((i,j))
+        val routingTable: LinkedHashMap[Node, Seq[Route]] = RoutingTable(topology = mesh, sourceNode = mesh.getNode(sourceNode.id))
+        val testRoutingTable = RoutingTableTestData(row,col,sourceNode)
 
-    val routingTable: Map[Node, Seq[Route]] = RoutingTable(topology = mesh, sourceNode = mesh.grid(1)(1))
-    routingTable.foreach { case(n, routes) => println("node: " + n.id + " with routes: " + routes)}
+        routingTable zip testRoutingTable foreach { case (m1, m2) => assert(m1._2 == m2._2)}
+      }
+    }
+
   }
 }
 
