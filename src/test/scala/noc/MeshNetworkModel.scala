@@ -18,25 +18,10 @@ class Channel(src: NodeSim, dst: NodeSim) {
 class NodeSim(val id: (Int, Int)) {
   import Route._
 
-  var channels: LinkedHashMap[Route, (Channel, Channel)] = LinkedHashMap()
-
   // each route has two channel tuple
   // one channel is the output from this route
   // the other channel is the input to this route
-  // TODO: make this channel creation generic for each node
-  //val channels: Map[Route, (Channel, Channel)] = Map(
-  //  E -> (new Channel(src = this, dst = new Node((1, 0))), new Channel(src = new Node((1, 0)), dst = this)), S -> (new Channel(src = this, dst = new Node((0, 1))), new Channel(src = new Node((0, 1)), dst = this)))
-
-//  val channels: Map[Route, (Channel, Channel)] = Map(
-//    E -> (new Channel(src = this, dst = new Node((0, 0))), new Channel(src = new Node((0, 0)), dst = this)), S -> (new Channel(src = this, dst = new Node((0, 1))), new Channel(src = new Node((0, 1)), dst = this)))
-
-
-  // we will follow a credit-based flow control for buffer management
-  // each of the downstream channel has it's own buffer in the upstream router
-  // before sending the packet the router checks if the selected downstream's channel
-  // has an empty packet space in the buffer. Upon sending the packet, the router
-  // decrements the buffer space. When the downstream node forwards the packet, it
-  // sends back a credit to the upstream router which then increments the space in the buffer
+  var channels: LinkedHashMap[Route, (Channel, Channel)] = LinkedHashMap()
 
 
   val router: Router = new Router(channels)
@@ -47,10 +32,6 @@ class NodeSim(val id: (Int, Int)) {
   }
 
 }
-
-//class Counter(numOfChannels: Int, sizeOfBuffer: Int) {
-//  var counters: ArrayBuffer[Int] = ArrayBuffer.fill(numOfChannels)(0)
-//}
 
 class Router(channels: LinkedHashMap[Route,(Channel,Channel)]) {
   import Route._
@@ -112,8 +93,6 @@ class Router(channels: LinkedHashMap[Route,(Channel,Channel)]) {
 
 }
 
-// the payload could be null in-case of a header phit that's why we need +A
-// so that it has an upper bound of Any
 class Packet(data: Seq[Int], routes: Seq[Route]) {
 
   val header =  routes
@@ -131,13 +110,6 @@ object Route extends Enumeration {
   val N, S, E, W, X = Value
 }
 
-//object PhitType extends Enumeration {
-//  type PhitType = Value
-//  // H is a header phit that carries the route to the next node
-//  // P is a payload phit that carries the data payload to be sent to next node
-//  // EN is an ending phit that indicates the end of the packet
-//  val H, P, EN = Value
-//}
 
 object MeshNetworkSim {
   import Route._
@@ -166,10 +138,6 @@ object MeshNetworkSim {
   }
 
   def connectNodes() = {
-
-    //Map[Route, (Channel, Channel)]
-    // Map(
-    //  E -> (new Channel(src = this, dst = new Node((1, 0))), new Channel(src = new Node((1, 0)), dst = this)), S -> (new Channel(src = this, dst = new Node((0, 1))), new Channel(src = new Node((0, 1)), dst = this)))
 
     val nodes = mesh.flatten
     for (i <- 0 until nodes.length) {
