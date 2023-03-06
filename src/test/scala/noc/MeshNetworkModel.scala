@@ -5,17 +5,17 @@ import org.scalatest.flatspec.AnyFlatSpec
 import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Queue
-import noc.MeshNetwork.NodeID
+import noc.MeshNetworkSim.NodeID
 import noc.Route.Route
 
 
-class Channel(src: Node, dst: Node) {
+class Channel(src: NodeSim, dst: NodeSim) {
   def from = src
   def to = dst
 }
 
 
-class Node(val id: (Int, Int)) {
+class NodeSim(val id: (Int, Int)) {
   import Route._
 
   var channels: LinkedHashMap[Route, (Channel, Channel)] = LinkedHashMap()
@@ -105,7 +105,7 @@ class Router(channels: LinkedHashMap[Route,(Channel,Channel)]) {
   }
 
   def routingTableLookup(srcNodeID: NodeID, dstNodeID: NodeID): Seq[Route] = {
-    val routingTable: LinkedHashMap[NodeID, Seq[Route]] = MeshNetwork.getRoutingTable(srcNodeID)
+    val routingTable: LinkedHashMap[NodeID, Seq[Route]] = MeshNetworkSim.getRoutingTable(srcNodeID)
     val routeToDst: Seq[Route] = routingTable(dstNodeID)
     routeToDst
   }
@@ -139,20 +139,20 @@ object Route extends Enumeration {
 //  val H, P, EN = Value
 //}
 
-object MeshNetwork {
+object MeshNetworkSim {
   import Route._
   type NodeID = (Int, Int)
 
   // the key is the source node
   // the value is a hashmap for all destination nodes and their routes
   var routingTables: LinkedHashMap[NodeID, LinkedHashMap[NodeID, Seq[Route]]] = LinkedHashMap()
-  var mesh: ArrayBuffer[ArrayBuffer[Node]] = ArrayBuffer()
+  var mesh: ArrayBuffer[ArrayBuffer[NodeSim]] = ArrayBuffer()
   var row = 0
   var col = 0
 
 
   def apply(rows: Int, cols: Int, packetSize: Int, phits: Int): Unit = {
-    mesh = ArrayBuffer.tabulate(rows, cols) { case (i, j) => new Node((j, i)) }
+    mesh = ArrayBuffer.tabulate(rows, cols) { case (i, j) => new NodeSim((j, i)) }
     row = rows
     col = cols
     // creates a routing table for each node
@@ -224,11 +224,11 @@ object MeshNetwork {
 object RoutingTable {
   import Route._
 
-  def apply(topology: ArrayBuffer[ArrayBuffer[Node]], sourceNode: Node): LinkedHashMap[NodeID, Seq[Route]] = {
+  def apply(topology: ArrayBuffer[ArrayBuffer[NodeSim]], sourceNode: NodeSim): LinkedHashMap[NodeID, Seq[Route]] = {
     // initialize an empty route table
     var routeTable: LinkedHashMap[NodeID, Seq[Route]] = LinkedHashMap()
     // get a list of all the nodes in the mesh
-    val nodes: ArrayBuffer[Node] = topology.flatten
+    val nodes: ArrayBuffer[NodeSim] = topology.flatten
 
     for (i <- 0 until nodes.length) {
 
@@ -242,7 +242,7 @@ object RoutingTable {
     routeTable
   }
 
-  def getRoute(toNode: Node, fromNode: Node): Seq[Route] = {
+  def getRoute(toNode: NodeSim, fromNode: NodeSim): Seq[Route] = {
     var route: ArrayBuffer[Route] = ArrayBuffer[Route]()
     val srcXCord = fromNode.id._1
     val srcYCord = fromNode.id._2
@@ -283,35 +283,35 @@ object RoutingTable {
 object RoutingTableTestData {
   import Route._
 
-  def apply(row: Int, col: Int, node: Node): LinkedHashMap[Node, Seq[Route]] = {
+  def apply(row: Int, col: Int, node: NodeSim): LinkedHashMap[NodeSim, Seq[Route]] = {
     if (row==2 && col==2) {
       if (node.id == (0,0)) {
-        LinkedHashMap[Node, Seq[Route]](
-          new Node((0,0)) -> List(X),
-          new Node((1,0)) -> List(E, X),
-          new Node((0,1)) -> List(S, X),
-          new Node((1,1)) -> List(E,S,X))
+        LinkedHashMap[NodeSim, Seq[Route]](
+          new NodeSim((0,0)) -> List(X),
+          new NodeSim((1,0)) -> List(E, X),
+          new NodeSim((0,1)) -> List(S, X),
+          new NodeSim((1,1)) -> List(E,S,X))
       } else if (node.id == (1,0)) {
-        LinkedHashMap[Node, Seq[Route]](
-          new Node((0, 0)) -> List(W, X),
-          new Node((1, 0)) -> List(X),
-          new Node((0, 1)) -> List(W, S, X),
-          new Node((1, 1)) -> List(S, X))
+        LinkedHashMap[NodeSim, Seq[Route]](
+          new NodeSim((0, 0)) -> List(W, X),
+          new NodeSim((1, 0)) -> List(X),
+          new NodeSim((0, 1)) -> List(W, S, X),
+          new NodeSim((1, 1)) -> List(S, X))
       } else if (node.id == (0, 1)) {
-        LinkedHashMap[Node, Seq[Route]](
-          new Node((0, 0)) -> List(N, X),
-          new Node((1, 0)) -> List(E, N, X),
-          new Node((0, 1)) -> List(X),
-          new Node((1, 1)) -> List(E, X))
+        LinkedHashMap[NodeSim, Seq[Route]](
+          new NodeSim((0, 0)) -> List(N, X),
+          new NodeSim((1, 0)) -> List(E, N, X),
+          new NodeSim((0, 1)) -> List(X),
+          new NodeSim((1, 1)) -> List(E, X))
       } else if (node.id == (1, 1)) {
-        LinkedHashMap[Node, Seq[Route]](
-          new Node((0, 0)) -> List(W, N, X),
-          new Node((1, 0)) -> List(N, X),
-          new Node((0, 1)) -> List(W, X),
-          new Node((1, 1)) -> List(X))
-      } else {LinkedHashMap[Node, Seq[Route]]()}
+        LinkedHashMap[NodeSim, Seq[Route]](
+          new NodeSim((0, 0)) -> List(W, N, X),
+          new NodeSim((1, 0)) -> List(N, X),
+          new NodeSim((0, 1)) -> List(W, X),
+          new NodeSim((1, 1)) -> List(X))
+      } else {LinkedHashMap[NodeSim, Seq[Route]]()}
     } else {
-      LinkedHashMap[Node, Seq[Route]]()
+      LinkedHashMap[NodeSim, Seq[Route]]()
     }
   }
 
@@ -342,12 +342,12 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     val data = 10
 
     // this setups up the mesh of nodes and their routers
-    MeshNetwork(rows=row, cols=col, packetSize=16, phits=16)
-    MeshNetwork.connectNodes()
+    MeshNetworkSim(rows=row, cols=col, packetSize=16, phits=16)
+    MeshNetworkSim.connectNodes()
     for (i <- 0 until row) {
       for (j <- 0 until col) {
-        val sourceNode = new Node((j,i))
-        val routingTable = MeshNetwork.getRoutingTable(sourceNode.id)
+        val sourceNode = new NodeSim((j,i))
+        val routingTable = MeshNetworkSim.getRoutingTable(sourceNode.id)
         val testRoutingTable = RoutingTableTestData(row,col,sourceNode)
         routingTable zip testRoutingTable foreach { case (m1, m2) => assert(m1._2 == m2._2)}
       }
@@ -365,11 +365,12 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     val data = 10
 
     // this setups up the mesh of nodes and their routers
-    MeshNetwork(rows = row, cols = col, packetSize = 16, phits = 16)
+    MeshNetworkSim(rows = row, cols = col, packetSize = 16, phits = 16)
     // this connects the nodes together in a mesh
-    MeshNetwork.connectNodes()
+    MeshNetworkSim.connectNodes()
     // this functions returns true when the destination node receives the data
-    val result = MeshNetwork.startRequest(from = (0, 0), to = (2, 2), Seq.fill(nWords)(data))
+    println("STARTING TO SEND DATA FROM NODE (0,0) TO NODE (2,2)")
+    val result = MeshNetworkSim.startRequest(from = (0, 0), to = (2, 2), Seq.fill(nWords)(data))
     assert (result == true)
   }
 
@@ -384,11 +385,12 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     val data = 10
 
     // this setups up the mesh of nodes and their routers
-    MeshNetwork(rows = row, cols = col, packetSize = 16, phits = 16)
+    MeshNetworkSim(rows = row, cols = col, packetSize = 16, phits = 16)
     // this connects the nodes together in a mesh
-    MeshNetwork.connectNodes()
+    MeshNetworkSim.connectNodes()
     // this functions returns true when the destination node receives the data
-    val result = MeshNetwork.startRequest(from = (0, 0), to = (1, 2), Seq.fill(nWords)(data))
+    println("STARTING TO SEND DATA FROM NODE (0,0) TO NODE (1,2)")
+    val result = MeshNetworkSim.startRequest(from = (0, 0), to = (1, 2), Seq.fill(nWords)(data))
     assert(result == true)
   }
 
@@ -403,11 +405,12 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     val data = 10
 
     // this setups up the mesh of nodes and their routers
-    MeshNetwork(rows = row, cols = col, packetSize = 16, phits = 16)
+    MeshNetworkSim(rows = row, cols = col, packetSize = 16, phits = 16)
     // this connects the nodes together in a mesh
-    MeshNetwork.connectNodes()
+    MeshNetworkSim.connectNodes()
     // this functions returns true when the destination node receives the data
-    val result = MeshNetwork.startRequest(from = (2, 2), to = (0, 0), Seq.fill(nWords)(data))
+    println("STARTING TO SEND DATA FROM NODE (2,2) TO NODE (0,0)")
+    val result = MeshNetworkSim.startRequest(from = (2, 2), to = (0, 0), Seq.fill(nWords)(data))
     assert(result == true)
   }
   it should "send the packet to a destination node (2,1) from node (0,2) in a 3x3 mesh" in {
@@ -421,12 +424,12 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     val data = 10
 
     // this setups up the mesh of nodes and their routers
-    MeshNetwork(rows = row, cols = col, packetSize = 16, phits = 16)
+    MeshNetworkSim(rows = row, cols = col, packetSize = 16, phits = 16)
     // this connects the nodes together in a mesh
-    MeshNetwork.connectNodes()
+    MeshNetworkSim.connectNodes()
     // this functions returns true when the destination node receives the data
     println("STARTING TO SEND DATA FROM NODE (0,2) TO NODE (2,1)")
-    val result = MeshNetwork.startRequest(from = (0, 2), to = (2, 1), Seq.fill(nWords)(data))
+    val result = MeshNetworkSim.startRequest(from = (0, 2), to = (2, 1), Seq.fill(nWords)(data))
     assert(result == true)
   }
 
@@ -441,12 +444,12 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     val data = 10
 
     // this setups up the mesh of nodes and their routers
-    MeshNetwork(rows = row, cols = col, packetSize = 16, phits = 16)
+    MeshNetworkSim(rows = row, cols = col, packetSize = 16, phits = 16)
     // this connects the nodes together in a mesh
-    MeshNetwork.connectNodes()
+    MeshNetworkSim.connectNodes()
     // this functions returns true when the destination node receives the data
     println("STARTING TO SEND DATA FROM NODE (0,0) TO NODE (3,1)")
-    val result = MeshNetwork.startRequest(from = (0, 0), to = (3, 1), Seq.fill(nWords)(data))
+    val result = MeshNetworkSim.startRequest(from = (0, 0), to = (3, 1), Seq.fill(nWords)(data))
     assert(result == true)
   }
 }
