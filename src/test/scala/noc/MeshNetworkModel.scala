@@ -8,7 +8,6 @@ import scala.collection.mutable.Queue
 import noc.MeshNetworkSim.NodeID
 import noc.Route.Route
 
-
 class Channel(src: NodeSim, dst: NodeSim) {
   def from = src
   def to = dst
@@ -298,7 +297,7 @@ object RoutingTableTestData {
 // has 4 words + 2 (1 header and 1 ending) that need to be transferred per cycle
 
 class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
-  behavior of "MeshNetwork"
+  behavior of "MeshNetworkModel"
   it should "give the correct route for all source nodes in a 2x2 mesh" in {
     val row = 2
     val col = 2
@@ -421,3 +420,5 @@ class MeshNetworkModel extends AnyFlatSpec with ChiselScalatestTester {
     assert(result == true)
   }
 }
+
+
