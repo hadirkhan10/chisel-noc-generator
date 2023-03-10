@@ -8,7 +8,7 @@ import chisel3.util._
 //}
 
 //class Channel(phits: Int) extends Bundle {
-//
+//  val id: Routes.Type =
 //}
 
 class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Module {
@@ -21,13 +21,18 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
   }
 
   val io = IO(new Bundle {
-    val in = Vec(nChannels, Flipped(Decoupled(UInt(p.phits.W))))
-    val out = Vec(nChannels, Decoupled(UInt(p.phits.W)))
+    val in = Vec(4, Flipped(Decoupled(UInt(p.phits.W))))
+    val out = Vec(4, Decoupled(UInt(p.phits.W)))
   })
   // Decoupled
   // ready -> input
   // valid -> output
   // bits -> output
+
+  // Flipped Decoupled
+  // ready -> output
+  // valid -> input
+  // bits -> input
   private val xCordReg = RegInit(xCord.U)
   private val yCordReg = RegInit(yCord.U)
 
