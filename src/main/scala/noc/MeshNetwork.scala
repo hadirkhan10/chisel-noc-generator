@@ -28,7 +28,12 @@ class MeshNetwork(p: MeshNetworkParams) extends Module {
   val mesh = Seq.tabulate(p.nRows, p.nCols) { case(i,j) => Module(new MeshNode(xCord = j, yCord = i, p))}
 
 
-  mesh.flatten.foreach(n => n.io.in := 0.U)
+  // setting all the inputs to be 0 or false
+  mesh.flatten.foreach(n => n.io.in.zip(n.io.out).foreach { case(din, dout) => {
+    din.valid :=  false.B
+    din.bits := 0.U
+    dout.ready := false.B
+  }})
 
 
   val routingTable = VecInit.tabulate(p.numOfNodes,p.nRows,p.nCols) { (n,x,y) => {
