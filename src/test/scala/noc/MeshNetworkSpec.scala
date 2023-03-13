@@ -19,9 +19,10 @@ class MeshNetworkSpec extends AnyFlatSpec with ChiselScalatestTester {
       // the state output for nodes is a flattened mesh so
       // node 00 -> io.state(0)  node 10 -> io.state(1) node 11 -> io.state(3)
 
-      // all nodes are idle and ready to accept the request
+      // all nodes are idle, ready to accept the request, and have no data in the buffer
       dut.io.state.foreach {s => s.expect(idle)}
       dut.io.requestPacket.foreach {rp => rp.ready.expect(true.B)}
+      dut.io.data.foreach {d => d.expect(0.U)}
 
       // start a request from node 00
       val node0 = dut.io.requestPacket(0)
@@ -74,9 +75,16 @@ class MeshNetworkSpec extends AnyFlatSpec with ChiselScalatestTester {
       dut.clock.step()
       // the packet from node 01 to node 11 is transmitted here
       // since node 11 is the destination it goes to idle instead of sending header state
+      // it also stores the data received in its buffer
       dut.io.state(1).expect(idle)
       dut.io.state(3).expect(idle)
+      dut.io.data(3).expect(10.U)
     }
 
   }
+  
+  // TODO: send data from node 11 to node 00 in a 2x2 mesh
+  // TODO: send data from node 00 to node 00 in a 2x2 mesh
+  // TODO: send data from node 11 to node 00 in a 2x2 mesh
+
 }

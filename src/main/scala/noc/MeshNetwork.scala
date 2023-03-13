@@ -37,18 +37,21 @@ case class MeshNetworkParams(nRows: Int, nCols: Int, phits: Int, bufferSize: Int
   val bitsForRouting: Int = bitsForRouteType*maxRoutes
 }
 
-class SendRequestPacket(p: MeshNetworkParams) extends Bundle {
+class RequestPacket(p: MeshNetworkParams) extends Bundle {
   // one UInt for each coordinate
   val destNodeID = Vec(2, UInt(p.bitsForNodeID.W))
   val payload = UInt(p.phits.W)
 }
+
 class MeshNetwork(p: MeshNetworkParams) extends Module {
   import MeshNetwork.Routes._
   import MeshNetwork.Route
   import MeshNode.State
   val io = IO(new Bundle {
     // the request packet from the testbench containing payload and addr of destination node
-    val requestPacket = Vec(p.numOfNodes, Flipped(Decoupled(new SendRequestPacket(p))))
+    val requestPacket = Vec(p.numOfNodes, Flipped(Decoupled(new RequestPacket(p))))
+    // just for debugging
+    val data = Vec(p.numOfNodes, Output(UInt(p.phits.W)))
     // just for debugging
     val state = Vec(p.numOfNodes, Output(State()))
   })
@@ -66,9 +69,10 @@ class MeshNetwork(p: MeshNetworkParams) extends Module {
     VecInit(getRoute((sourceNode.xCord, sourceNode.yCord), destNode))
   }}
 
-  nodes.zip(io.requestPacket).zip(io.state).foreach { case((node, p), s) => {
+  nodes.zip(io.requestPacket).zip(io.state).zip(io.data).foreach { case(((node, p), s), d) => {
     node.io.requestPacket <> p
     s := node.io.state
+    d := node.io.data
     val destNodeID = getDestNodeID((node.io.routeLookup.destNodeID(0), node.io.routeLookup.destNodeID(1)))
     node.io.routeLookup.route := routingTable(node.io.routeLookup.sourceNodeID)(destNodeID._1)(destNodeID._2)
   }}

@@ -43,15 +43,13 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
 
   val io = IO(new Bundle {
     // input from other adjacent nodes
-//    val in = Vec(4, Flipped(Decoupled(UInt(p.phits.W))))
     val in = Vec(4, Flipped(Decoupled(new Phit(p))))
-
     // input from the network to send a packet to a dest node
-    val requestPacket = Flipped(Decoupled(new SendRequestPacket(p)))
+    val requestPacket = Flipped(Decoupled(new RequestPacket(p)))
     // output to other adjacent nodes
-   // val out = Vec(4, Decoupled(UInt(p.phits.W)))
     val out = Vec(4, Decoupled(new Phit(p)))
-
+    // the data stored in buffer for debugging/testing
+    val data = Output(UInt(p.phits.W))
     // current state of the node for debugging/testing
     val state = Output(State())
     // output to lookup the routing table
@@ -76,6 +74,8 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
   val nextHop = RegInit(0.U)
   val nextRoute = RegInit(0.U)
   val payload = RegInit(0.U)
+  // used to store the payload in the destination node
+  val buffer = RegInit(0.U)
 
 
 
@@ -140,8 +140,10 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
     is (receivingEnd) {
       val index = io.in.indexWhere(dio => dio.valid === true.B)
       // check if nextHop is X which mean this node is the destination
-      state := Mux(nextHop === X.asUInt, idle, sendingHeader)
       // if not destination then send a new request to the adjacent node
+      state := Mux(nextHop === X.asUInt, idle, sendingHeader)
+      buffer := payload
+
     }
   }
   def formHeaderPhit(nextRoute: UInt, p: MeshNetworkParams): Phit = {
@@ -188,6 +190,7 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
 
   io.requestPacket.ready := isReady
   io.state := state
+  io.data := buffer
 
 
    //val router = new Router(io, bufferSize)
