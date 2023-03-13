@@ -99,7 +99,7 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
         nextRoute := VecInit(route.tail).asUInt
         payload := io.requestPacket.bits.payload
         isReady := false.B
-        state := sendingHeader
+        state := Mux(route.head === X.asUInt, receivingEnd, sendingHeader)
       } .elsewhen(io.in.map(dio => dio.valid).reduce(_ || _)) {
         // figure out which adjacent node is sending a valid data
         // assuming getting data from a single node at a given time
@@ -142,6 +142,7 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
       // check if nextHop is X which mean this node is the destination
       // if not destination then send a new request to the adjacent node
       state := Mux(nextHop === X.asUInt, idle, sendingHeader)
+      isReady := true.B
       buffer := payload
 
     }
