@@ -70,7 +70,6 @@ class Router(channels: LinkedHashMap[Route,(Channel,Channel)]) {
     if (route == Seq(X)) {
       // we are the destination so send a true response
       println("REACHED THE DESTINATION!!")
-      // TODO: also store the payload in queue
       true
     } else {
       // we are an intermediate node
