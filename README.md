@@ -1,7 +1,7 @@
 Network On-Chip Generator
 =======================
 
-A network on chip generator that for now focuses on creating a 2-D mesh with deterministic routing
+A network on chip generator that generates multi-radix n-mesh networks
 
 ## Implemented features
 ### Scala model
