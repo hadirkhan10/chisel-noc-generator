@@ -148,10 +148,8 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
   def getSourceNodeID(xCord: Int, yCord: Int): UInt = {
     if (yCord == 0) {
       xCord.U
-    } else if (yCord == p.nRows-1) {
-      (p.nCols * (p.nRows-1) + xCord).U
     } else {
-      ((p.nCols-1) + yCord + xCord).U
+      (p.nCols*yCord + xCord).U
     }
   }
 

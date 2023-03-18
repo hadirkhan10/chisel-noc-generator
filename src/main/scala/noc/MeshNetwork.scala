@@ -29,7 +29,7 @@ object MeshNetwork {
 case class MeshNetworkParams(nRows: Int, nCols: Int, phits: Int, payloadPhits: Int) {
   require(nRows > 1)
   require(nCols > 1)
-  require(nCols == nRows)
+  //require(nCols == nRows)
   val numOfNodes = nRows * nCols
   val maxRoutes = nCols - 1 + nRows
   val bitsForNodeID: Int = log2Ceil(List(nRows, nCols).max)

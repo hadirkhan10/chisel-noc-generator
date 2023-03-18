@@ -117,10 +117,8 @@ class MeshNetworkSpec extends AnyFlatSpec with ChiselScalatestTester {
   def getSourceNodeID(xCord: Int, yCord: Int, p: MeshNetworkParams): Int = {
     if (yCord == 0) {
       xCord
-    } else if (yCord == p.nRows - 1) {
-      p.nCols * (p.nRows - 1) + xCord
     } else {
-      (p.nCols - 1) + yCord + xCord
+      p.nCols*yCord + xCord
     }
   }
 
@@ -150,14 +148,10 @@ class MeshNetworkSpec extends AnyFlatSpec with ChiselScalatestTester {
             val payload = Seq.tabulate(p.payloadPhits)(i => i + 1)
             val routingTable = MeshNetworkSim.getRoutingTable(srcNodeID)
             val routes = routingTable(destNodeID)
-
             startRequest(dut, srcNodeID, destNodeID, routes, payload, p, cycleCounter)
-
-
           }
         }
-      }
-      }
+      }}
 
     }
   }
@@ -197,4 +191,78 @@ class MeshNetworkSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   }
 
+  it should "send data from each node to every other node in a 4x2 mesh" in {
+    val p = MeshNetworkParams(4, 2, 16, payloadPhits = 1)
+    MeshNetworkSim(rows = p.nRows, cols = p.nCols, packetSize = 16, phits = 16)
+    MeshNetworkSim.connectNodes()
+    test(new MeshNetwork(p)).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+      // the mesh looks like the following
+      //  node 00 --- node 10
+      //    |           |
+      //  node 01 --- node 11
+      //    |           |
+      //  node 02 --- node 12
+      //    |           |
+      //  node 03 --- node 13
+      println("-------------------------------------------------------------------")
+      println("|                                                                 |")
+      println("|************ STARTING RIGOROUS TESTING FOR 4X2 MESH *************|")
+      println("|                                                                 |")
+      println("-------------------------------------------------------------------")
+      var cycleCounter = 0
+      val nodeSims = MeshNetworkSim.mesh.flatten
+      nodeSims.foreach { nodeSim => {
+        for (i <- 0 until p.nRows) {
+          for (j <- 0 until p.nCols) {
+            val srcNodeID = (nodeSim.id._1, nodeSim.id._2)
+            val destNodeID = (j, i)
+            val payload = Seq.tabulate(p.payloadPhits)(i => i + 1)
+            val routingTable = MeshNetworkSim.getRoutingTable(srcNodeID)
+            val routes = routingTable(destNodeID)
+            startRequest(dut, srcNodeID, destNodeID, routes, payload, p, cycleCounter)
+          }
+        }
+      }
+      }
+
+    }
+
+  }
+
+  it should "send data from each node to every other node in a 3x5 mesh" in {
+    val p = MeshNetworkParams(3, 5, 16, payloadPhits = 1)
+    MeshNetworkSim(rows = p.nRows, cols = p.nCols, packetSize = 16, phits = 16)
+    MeshNetworkSim.connectNodes()
+    test(new MeshNetwork(p)).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+      // the mesh looks like the following
+      //  node 00 --- node 10 --- node 20 --- node 30 --- node 40
+      //    |           |           |           |           |
+      //  node 01 --- node 11 --- node 21 --- node 31 --- node 41
+      //    |           |           |           |           |
+      //  node 02 --- node 12 --- node 22 --- node 32 --- node 42
+
+      println("-------------------------------------------------------------------")
+      println("|                                                                 |")
+      println("|************ STARTING RIGOROUS TESTING FOR 3X5 MESH *************|")
+      println("|                                                                 |")
+      println("-------------------------------------------------------------------")
+      var cycleCounter = 0
+      val nodeSims = MeshNetworkSim.mesh.flatten
+      nodeSims.foreach { nodeSim => {
+        for (i <- 0 until p.nRows) {
+          for (j <- 0 until p.nCols) {
+            val srcNodeID = (nodeSim.id._1, nodeSim.id._2)
+            val destNodeID = (j, i)
+            val payload = Seq.tabulate(p.payloadPhits)(i => i + 1)
+            val routingTable = MeshNetworkSim.getRoutingTable(srcNodeID)
+            val routes = routingTable(destNodeID)
+            startRequest(dut, srcNodeID, destNodeID, routes, payload, p, cycleCounter)
+          }
+        }
+      }
+      }
+
+    }
+
+  }
 }
