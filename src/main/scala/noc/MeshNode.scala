@@ -5,7 +5,7 @@ import chisel3.util._
 
 object MeshNode {
   object State extends ChiselEnum {
-    val idle, sendingHeader, sendingPayload, sendingEnd, receivingPayload, receivingEnd = Value
+    val idle, sendingHeader, sendingPayload, receivingPayload = Value
   }
 }
 
@@ -21,7 +21,6 @@ class Phit(p: MeshNetworkParams) extends Bundle {
   // |  Route |        Payload               |
   // -----------------------------------------
 
-  //val word = MixedVec(Seq(UInt(p.bitsForPhitType.W), UInt(p.bitsForRouting.W), UInt(p.phits.W)))
   val word = MixedVec(Seq(UInt(p.bitsForRouting.W), UInt(p.phits.W)))
 
 }
@@ -40,7 +39,7 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
     // output to other adjacent nodes
     val out = Vec(4, Decoupled(new Phit(p)))
     // the data stored in buffer for debugging/testing
-    val data = Output(UInt(p.phits.W))
+    val data = Output(Vec(p.payloadPhits, UInt(p.phits.W)))
     // current state of the node for debugging/testing
     val state = Output(State())
     // output to lookup the routing table
@@ -64,11 +63,13 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
   val isReady = RegInit(true.B)
   val nextHop = RegInit(0.U)
   val nextRoute = RegInit(0.U)
-  val payload = RegInit(0.U)
-  // used to store the payload in the destination node
-  val buffer = RegInit(0.U)
+  val payload = RegInit(VecInit(Seq.fill(p.payloadPhits)(0.U(p.phits.W))))
 
 
+  val (payloadIndex, isWrapping) = Counter(0 until p.payloadPhits, enable =
+                                                                          (state === idle && io.requestPacket.fire) ||
+                                                                          (state === receivingPayload) ||
+                                                                          (state === sendingPayload))
 
   def id: Vec[UInt] = VecInit(xCordReg, yCordReg)
 
@@ -89,10 +90,11 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
         val route = io.routeLookup.route
         nextHop := route.head
         nextRoute := VecInit(route.tail).asUInt
-        payload := io.requestPacket.bits.payload
-        isReady := false.B
-        // if the request has the dest node the same as the source node then skip to receivingEnd state
-        state := Mux(route.head === X.asUInt, receivingEnd, sendingHeader)
+        payload(payloadIndex) := io.requestPacket.bits.payload
+        isReady := Mux((route.head === X.asUInt) && isWrapping, true.B, Mux(isWrapping, false.B, true.B))
+        // if the request has the dest node the same as the source node then stay at idle state
+        // otherwise go to sending header state when a complete packet is received from the testbench
+        state := Mux(route.head === X.asUInt && isWrapping, idle, Mux(isWrapping, sendingHeader, idle))
       } .elsewhen(io.in.map(dio => dio.valid).reduce(_ || _)) {
         // we are getting a packet from an adjacent node
         // figure out which adjacent node is sending a valid data
@@ -113,39 +115,26 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
       state := sendingPayload
     }
     is (sendingPayload) {
-      val payloadPhit = formPayloadPhit(payload, p)
+      val payloadPhit = formPayloadPhit(payload(payloadIndex), p)
       io.out(nextHop).valid := true.B
       io.out(nextHop).bits := payloadPhit
-      state := sendingEnd
-    }
-    is (sendingEnd) {
-      val endingPhit = formEndingPhit(p)
-      io.out(nextHop).valid := true.B
-      io.out(nextHop).bits := endingPhit
-      state := idle
-      isReady := true.B
+      // instead of going to the sendingEnd state, go to the idle state if payload is sent
+      state := Mux(isWrapping, idle, sendingPayload)
+      isReady := Mux(isWrapping, true.B, isReady)
     }
     is (receivingPayload) {
       val index = io.in.indexWhere(dio => dio.valid === true.B)
-      //payload := io.in(index).bits.word(2)
-      payload := io.in(index).bits.word(1)
-
-      state := receivingEnd
-    }
-    is (receivingEnd) {
-      val index = io.in.indexWhere(dio => dio.valid === true.B)
-      // check if nextHop is X which mean this node is the destination
-      // if not destination then send a new request to the adjacent node
-      state := Mux(nextHop === X.asUInt, idle, sendingHeader)
-      isReady := true.B
-      buffer := payload
-
+      payload(payloadIndex) := io.in(index).bits.word(1)
+      // instead of going to the ending state directly go to idle state if received all the payload phits
+      state := Mux(isWrapping, Mux(nextHop === X.asUInt, idle, sendingHeader), receivingPayload)
+      isReady := Mux(isWrapping, Mux(nextHop === X.asUInt, true.B, isReady), isReady)
     }
   }
   def formHeaderPhit(nextRoute: UInt, p: MeshNetworkParams): Phit = {
     val header = Wire(new Phit(p))
     header.word(0) := nextRoute
-    header.word(1) := 0.U
+    // for the unused word send the number of payload phits
+    header.word(1) := p.payloadPhits.U
     header
   }
 
@@ -154,14 +143,6 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
     payload.word(0) := 0.U
     payload.word(1) := data
     payload
-  }
-
-  def formEndingPhit(p: MeshNetworkParams): Phit = {
-    val end = Wire(new Phit(p))
-    //end.word(0) := EN.asUInt
-    end.word(0) := 0.U
-    end.word(1) := 0.U
-    end
   }
 
   def getSourceNodeID(xCord: Int, yCord: Int): UInt = {
@@ -184,7 +165,7 @@ class MeshNode(val xCord: Int, val yCord: Int, p: MeshNetworkParams) extends Mod
 
   io.requestPacket.ready := isReady
   io.state := state
-  io.data := buffer
+  io.data := payload
 
 
 }

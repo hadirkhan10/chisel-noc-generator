@@ -26,7 +26,7 @@ object MeshNetwork {
 }
 
 
-case class MeshNetworkParams(nRows: Int, nCols: Int, phits: Int, bufferSize: Int) {
+case class MeshNetworkParams(nRows: Int, nCols: Int, phits: Int, payloadPhits: Int) {
   require(nRows > 1)
   require(nCols > 1)
   require(nCols == nRows)
@@ -52,7 +52,7 @@ class MeshNetwork(p: MeshNetworkParams) extends Module {
     // the request packet from the testbench containing payload and addr of destination node
     val requestPacket = Vec(p.numOfNodes, Flipped(Decoupled(new RequestPacket(p))))
     // just for debugging
-    val data = Vec(p.numOfNodes, Output(UInt(p.phits.W)))
+    val data = Vec(p.numOfNodes, Output(Vec(p.payloadPhits, UInt(p.phits.W))))
     // just for debugging
     val state = Vec(p.numOfNodes, Output(State()))
   })
