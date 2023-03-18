@@ -8,7 +8,19 @@ A network on chip generator that for now focuses on creating a 2-D mesh with det
 The scala model creates a 2-D mesh network with nodes (`NodeSim` class), routers (`Router` class) and channels (`Channel` class). The model is then used to generate the routing tables for all the nodes in the mesh. A deterministic routing algorithm "dimension-order" routing is used to find the routes for each node and its destination to all other nodes. Also a packet is sent from one node to another to verify the functionality.
 
 ### Chisel hardware
-The generator creates a 2-D mesh network given the mesh configuration parameters. It creates the routing table for each node and connects them together in a mesh like structure. It takes a request packet from the testbench to start the transmission of a packet from the source node to a destination node. Right now the hardware can transmit only a single payload phit inside a packet and at a given time only one node can send data to another node. 
+The generator creates a 2-D mesh network given the mesh configuration parameters. 
+It creates the routing table for each node and connects them together in a mesh like structure.
+It takes a request packet from the testbench to start the transmission of a packet from the 
+source node to a destination node.
+
+### Parameters
+
+| Name         | Purpose                                        |
+|--------------|------------------------------------------------|
+| nRows        | The number of rows in the network              |
+| nCols        | The number of columns in the network           |
+| phits        | The number of bits that our channel transmits  |
+| payloadPhits | The number of payload phits in a packet        |
 
 ## Running tests
 
@@ -19,12 +31,15 @@ sbt test
 ## What do the tests do?
 
 ### Scala Model
-The `MeshNetworkModel` tests the mesh network model at Scala level. It creates a 2-D mesh given rows and columns and runs the following tests:
-* test the routing table generation against hard-coded routing values
+The `MeshNetworkModel` tests the mesh network model at Scala level. 
+It creates a multi-radix n-mesh given rows and columns and runs the following tests:
+* test the routing table generation against hard-coded routing values using `assert` statements
 * send the packet from one node to another with different 2-D mesh configurations
 
 ### Co-simulation with hardware
-The `MeshNetwork` class generates the hardware given the parameters of the mesh and then uses the scala model to test the various routes and the states that each node is expected to be in. 
+The `MeshNetwork` class generates the hardware given the parameters of the mesh and 
+then uses the scala model to test the various routes and the states that each node
+is expected to be in. 
 
 
 ### Dependencies
