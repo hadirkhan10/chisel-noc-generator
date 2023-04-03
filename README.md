@@ -90,6 +90,12 @@ transmitted on clock cycle 11. Since Node 11 is the destination node, it stores 
 in its internal buffer. The last three print statements just output the data stored in the
 internal buffer which is `16'd1`, `16'd2` and `16'd3`.
 
+## Generating Verilog
+
+```
+sbt 'runMain noc.MeshNetworkMain'
+```
+
 ### Dependencies
 
 #### JDK 8 or newer
